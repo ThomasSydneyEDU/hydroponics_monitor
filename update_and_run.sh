@@ -1,3 +1,10 @@
+#!/bin/bash
+
+# Variables
+REPO_PATH="/home/tcar5787/Documents/hydroponics_monitor"        # Replace with the full path to your project directory
+VENV_PATH="/home/tcar5787/Documents/PyEnviroments/hydromonitor"  # Replace with the full path to your virtual environment
+SCRIPT_NAME="main.py"       # Replace with your Python script name
+
 # Change to the repository directory
 cd "$REPO_PATH" || { echo "Error: Cannot access $REPO_PATH"; exit 1; }
 
