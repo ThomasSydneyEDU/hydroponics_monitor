@@ -4,6 +4,7 @@ import serial
 import time
 import random
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
 from datetime import datetime, timedelta
 
 # Try to connect to the Arduino
@@ -61,8 +62,8 @@ def update_data():
         for key, value in data.items():
             sensor_data[key].append(float(value))
 
-        # Limit data to 24 hours
-        cutoff_time = now - timedelta(hours=24)
+        # Limit data to 1 month
+        cutoff_time = now - timedelta(days=30)
         while timestamps and timestamps[0] < cutoff_time:
             timestamps.pop(0)
             for key in sensor_data:
@@ -82,21 +83,51 @@ def update_data():
 
     root.after(1000, update_data)
 
-# Show graph for a sensor
+# Show interactive graph for a sensor
 def show_graph(sensor_name):
     if len(sensor_data[sensor_name]) == 0:
         messagebox.showinfo("No Data", "Not enough data available to display a graph.")
         return
 
-    plt.figure(figsize=(8, 4))
-    plt.plot(timestamps, sensor_data[sensor_name], label=sensor_name)
-    plt.xlabel("Time")
-    plt.ylabel(sensor_name)
-    plt.title(f"{sensor_name} over the last 24 hours")
-    plt.ylim(Y_AXIS_RANGES[sensor_name])
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.legend()
+    fig, ax = plt.subplots(figsize=(8, 4))
+    fig.subplots_adjust(bottom=0.2)
+    
+    def plot_data(time_range):
+        ax.clear()
+        now = datetime.now()
+        start_time = now - timedelta(days=time_range)
+        filtered_data = [
+            (t, v) for t, v in zip(timestamps, sensor_data[sensor_name]) if t >= start_time
+        ]
+        if filtered_data:
+            times, values = zip(*filtered_data)
+            ax.plot(times, values, color='black', linewidth=2, label='Recorded Data')
+        else:
+            average_value = sum(sensor_data[sensor_name]) / len(sensor_data[sensor_name])
+            ax.axhline(average_value, color='red', linestyle='--', linewidth=2, label='Average Value')
+
+        ax.set_title(f"{sensor_name} Data - Last {time_range} Days")
+        ax.set_xlabel("Time")
+        ax.set_ylabel(sensor_name)
+        ax.set_ylim(Y_AXIS_RANGES[sensor_name])
+        ax.legend()
+        fig.canvas.draw()
+
+    # Initial plot for 1 day
+    plot_data(1)
+
+    # Add interactive buttons
+    ax_1day = plt.axes([0.1, 0.05, 0.2, 0.075])
+    ax_7day = plt.axes([0.4, 0.05, 0.2, 0.075])
+    ax_30day = plt.axes([0.7, 0.05, 0.2, 0.075])
+    btn_1day = Button(ax_1day, "1 Day")
+    btn_7day = Button(ax_7day, "1 Week")
+    btn_30day = Button(ax_30day, "1 Month")
+
+    btn_1day.on_clicked(lambda _: plot_data(1))
+    btn_7day.on_clicked(lambda _: plot_data(7))
+    btn_30day.on_clicked(lambda _: plot_data(30))
+
     plt.show()
 
 # Restart the program
