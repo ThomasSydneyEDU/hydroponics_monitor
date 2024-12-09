@@ -95,38 +95,42 @@ def show_graph(sensor_name):
     def plot_data(time_range):
         ax.clear()
         now = datetime.now()
-        start_time = now - timedelta(days=time_range)
-        filtered_data = [
-            (t, v) for t, v in zip(timestamps, sensor_data[sensor_name]) if t >= start_time
-        ]
-        if filtered_data:
-            times, values = zip(*filtered_data)
-            ax.plot(times, values, color='black', linewidth=2, label='Recorded Data')
+        start_time = now - timedelta(hours=time_range)
+
+        # Prepare data for plotting
+        filtered_times = []
+        filtered_values = []
+        for i in range(len(timestamps)):
+            if timestamps[i] >= start_time:
+                filtered_times.append(timestamps[i])
+                filtered_values.append(sensor_data[sensor_name][i])
+
+        if filtered_values:
+            ax.plot(filtered_times, filtered_values, color='black', linewidth=2, label='Recorded Data')
         else:
+            # If insufficient data, plot average
             average_value = sum(sensor_data[sensor_name]) / len(sensor_data[sensor_name])
             ax.axhline(average_value, color='red', linestyle='--', linewidth=2, label='Average Value')
 
-        ax.set_title(f"{sensor_name} Data - Last {time_range} Days")
+        ax.set_title(f"{sensor_name} Data - Last {time_range} Hours")
         ax.set_xlabel("Time")
         ax.set_ylabel(sensor_name)
         ax.set_ylim(Y_AXIS_RANGES[sensor_name])
         ax.legend()
         fig.canvas.draw()
 
-    # Initial plot for 1 day
+    # Initial plot for 1 hour
     plot_data(1)
 
     # Add interactive buttons
-    ax_1day = plt.axes([0.1, 0.05, 0.2, 0.075])
-    ax_7day = plt.axes([0.4, 0.05, 0.2, 0.075])
-    ax_30day = plt.axes([0.7, 0.05, 0.2, 0.075])
-    btn_1day = Button(ax_1day, "1 Day")
-    btn_7day = Button(ax_7day, "1 Week")
-    btn_30day = Button(ax_30day, "1 Month")
-
-    btn_1day.on_clicked(lambda _: plot_data(1))
-    btn_7day.on_clicked(lambda _: plot_data(7))
-    btn_30day.on_clicked(lambda _: plot_data(30))
+    buttons = [
+        ("1 Hour", 1), ("6 Hours", 6), ("1 Day", 24),
+        ("1 Week", 168), ("1 Month", 720)
+    ]
+    for idx, (label, hours) in enumerate(buttons):
+        ax_button = plt.axes([0.1 + idx * 0.16, 0.05, 0.14, 0.075])
+        btn = Button(ax_button, label)
+        btn.on_clicked(lambda _, h=hours: plot_data(h))
 
     plt.show()
 
@@ -135,6 +139,10 @@ def restart_program():
     import os
     import sys
     os.execl(sys.executable, sys.executable, *sys.argv)
+
+# Close the program
+def close_program():
+    root.destroy()
 
 # Create the main window
 root = tk.Tk()
@@ -164,6 +172,11 @@ for i, sensor in enumerate(sensors):
 restart_btn = tk.Button(button_frame, text="Restart Program", font=("Arial", 14), width=15, height=2,
                         command=restart_program)
 restart_btn.grid(row=1, column=2, padx=5, pady=5)
+
+# Close button
+close_btn = tk.Button(root, text="Close Program", font=("Arial", 14), width=20, height=2, bg="red", fg="white",
+                      command=close_program)
+close_btn.pack(pady=20)
 
 # Start updating data
 root.after(1000, update_data)
