@@ -6,6 +6,7 @@ import random
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 from datetime import datetime, timedelta
+import matplotlib.dates as mdates
 
 # Try to connect to the Arduino
 try:
@@ -92,12 +93,12 @@ def show_graph(sensor_name):
     fig, ax = plt.subplots(figsize=(8, 4))
     fig.subplots_adjust(bottom=0.2)
     
-    def plot_data(time_range):
+    def plot_data(hours, time_label):
         ax.clear()
         now = datetime.now()
-        start_time = now - timedelta(hours=time_range)
+        start_time = now - timedelta(hours=hours)
 
-        # Prepare data for plotting
+        # Filter data for the selected time range
         filtered_times = []
         filtered_values = []
         for i in range(len(timestamps)):
@@ -112,25 +113,38 @@ def show_graph(sensor_name):
             average_value = sum(sensor_data[sensor_name]) / len(sensor_data[sensor_name])
             ax.axhline(average_value, color='red', linestyle='--', linewidth=2, label='Average Value')
 
-        ax.set_title(f"{sensor_name} Data - Last {time_range} Hours")
+        # Customize x-axis labels
+        ax.xaxis.set_major_formatter(mdates.DateFormatter(time_label))
+        if hours <= 6:  # Hourly data
+            ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=5))
+        elif hours <= 24:  # Daily data
+            ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
+        elif hours <= 168:  # Weekly data
+            ax.xaxis.set_major_locator(mdates.DayLocator())
+        else:  # Monthly data
+            ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=1))
+
+        ax.set_title(f"{sensor_name} Data - Last {hours} Hours")
         ax.set_xlabel("Time")
         ax.set_ylabel(sensor_name)
         ax.set_ylim(Y_AXIS_RANGES[sensor_name])
         ax.legend()
+        plt.xticks(rotation=45)
         fig.canvas.draw()
 
     # Initial plot for 1 hour
-    plot_data(1)
+    plot_data(1, '%H:%M')
 
     # Add interactive buttons
     buttons = [
-        ("1 Hour", 1), ("6 Hours", 6), ("1 Day", 24),
-        ("1 Week", 168), ("1 Month", 720)
+        ("1 Hour", 1, '%H:%M'), ("6 Hours", 6, '%H:%M'),
+        ("1 Day", 24, '%H:%M'), ("1 Week", 168, '%d-%b'),
+        ("1 Month", 720, '%d-%b')
     ]
-    for idx, (label, hours) in enumerate(buttons):
+    for idx, (label, hours, time_label) in enumerate(buttons):
         ax_button = plt.axes([0.1 + idx * 0.16, 0.05, 0.14, 0.075])
         btn = Button(ax_button, label)
-        btn.on_clicked(lambda _, h=hours: plot_data(h))
+        btn.on_clicked(lambda _, h=hours, t=time_label: plot_data(h, t))
 
     plt.show()
 
