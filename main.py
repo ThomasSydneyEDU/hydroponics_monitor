@@ -4,7 +4,6 @@ import serial
 import time
 import random
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Button
 from datetime import datetime, timedelta
 import matplotlib.dates as mdates
 
@@ -84,65 +83,41 @@ def update_data():
 
     root.after(1000, update_data)
 
-# Show interactive graph for a sensor
+# Show graph for the last day (24 hours)
 def show_graph(sensor_name):
     if len(sensor_data[sensor_name]) == 0:
         messagebox.showinfo("No Data", "Not enough data available to display a graph.")
         return
 
+    now = datetime.now()
+    start_time = now - timedelta(hours=24)
+
+    # Filter data for the last 24 hours
+    filtered_times = []
+    filtered_values = []
+    for i in range(len(timestamps)):
+        if timestamps[i] >= start_time:
+            filtered_times.append(timestamps[i])
+            filtered_values.append(sensor_data[sensor_name][i])
+
     fig, ax = plt.subplots(figsize=(8, 4))
-    fig.subplots_adjust(bottom=0.2)
-    
-    def plot_data(hours, time_label):
-        ax.clear()
-        now = datetime.now()
-        start_time = now - timedelta(hours=hours)
+    if filtered_values:
+        ax.plot(filtered_times, filtered_values, color='black', linewidth=2, label='Recorded Data')
+    else:
+        # If insufficient data, plot average
+        average_value = sum(sensor_data[sensor_name]) / len(sensor_data[sensor_name])
+        ax.axhline(average_value, color='red', linestyle='--', linewidth=2, label='Average Value')
 
-        # Filter data for the selected time range
-        filtered_times = []
-        filtered_values = []
-        for i in range(len(timestamps)):
-            if timestamps[i] >= start_time:
-                filtered_times.append(timestamps[i])
-                filtered_values.append(sensor_data[sensor_name][i])
-
-        if filtered_values:
-            ax.plot(filtered_times, filtered_values, color='black', linewidth=2, label='Recorded Data')
-        else:
-            # If insufficient data, plot average
-            average_value = sum(sensor_data[sensor_name]) / len(sensor_data[sensor_name])
-            ax.axhline(average_value, color='red', linestyle='--', linewidth=2, label='Average Value')
-
-        # Customize x-axis labels
-        ax.xaxis.set_major_formatter(mdates.DateFormatter(time_label))
-        if hours <= 6:  # Hourly data
-            ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=5))
-        elif hours <= 24:  # Daily data
-            ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
-        else:  # Weekly data
-            ax.xaxis.set_major_locator(mdates.DayLocator())
-
-        ax.set_title(f"{sensor_name} Data - Last {hours} Hours")
-        ax.set_xlabel("Time")
-        ax.set_ylabel(sensor_name)
-        ax.set_ylim(Y_AXIS_RANGES[sensor_name])
-        ax.legend()
-        plt.xticks(rotation=45)
-        fig.canvas.draw()
-
-    # Initial plot for 1 hour
-    plot_data(1, '%H:%M')
-
-    # Add three interactive buttons: Hour, Day, Week
-    buttons = [
-        ("1 Hour", 1, '%H:%M'), ("1 Day", 24, '%H:%M'),
-        ("1 Week", 168, '%d-%b')
-    ]
-    for idx, (label, hours, time_label) in enumerate(buttons):
-        ax_button = plt.axes([0.2 + idx * 0.2, 0.05, 0.2, 0.075])
-        btn = Button(ax_button, label)
-        btn.on_clicked(lambda _, h=hours, t=time_label: plot_data(h, t))
-
+    # Set x-axis labels
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=15))  # 15-minute intervals
+    ax.set_title(f"{sensor_name} Data - Last 24 Hours")
+    ax.set_xlabel("Time")
+    ax.set_ylabel(sensor_name)
+    ax.set_ylim(Y_AXIS_RANGES[sensor_name])
+    ax.legend()
+    plt.xticks(rotation=45)
+    plt.tight_layout()
     plt.show()
 
 # Restart the program
