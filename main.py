@@ -119,10 +119,8 @@ def show_graph(sensor_name):
             ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=5))
         elif hours <= 24:  # Daily data
             ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
-        elif hours <= 168:  # Weekly data
+        else:  # Weekly data
             ax.xaxis.set_major_locator(mdates.DayLocator())
-        else:  # Monthly data
-            ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=1))
 
         ax.set_title(f"{sensor_name} Data - Last {hours} Hours")
         ax.set_xlabel("Time")
@@ -135,14 +133,13 @@ def show_graph(sensor_name):
     # Initial plot for 1 hour
     plot_data(1, '%H:%M')
 
-    # Add interactive buttons
+    # Add three interactive buttons: Hour, Day, Week
     buttons = [
-        ("1 Hour", 1, '%H:%M'), ("6 Hours", 6, '%H:%M'),
-        ("1 Day", 24, '%H:%M'), ("1 Week", 168, '%d-%b'),
-        ("1 Month", 720, '%d-%b')
+        ("1 Hour", 1, '%H:%M'), ("1 Day", 24, '%H:%M'),
+        ("1 Week", 168, '%d-%b')
     ]
     for idx, (label, hours, time_label) in enumerate(buttons):
-        ax_button = plt.axes([0.1 + idx * 0.16, 0.05, 0.14, 0.075])
+        ax_button = plt.axes([0.2 + idx * 0.2, 0.05, 0.2, 0.075])
         btn = Button(ax_button, label)
         btn.on_clicked(lambda _, h=hours, t=time_label: plot_data(h, t))
 
