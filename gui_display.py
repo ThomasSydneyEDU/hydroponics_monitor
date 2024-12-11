@@ -36,6 +36,7 @@ def fetch_data(sensor_name, hours=24):
             values.append(row[1])
         except ValueError:
             print(f"Skipping invalid timestamp: {row[0]}")
+    print(f"Fetched {len(times)} data points for {sensor_name}.")  # Debugging output
     return times, values
 
 # Resample data to align with tick intervals
@@ -86,6 +87,7 @@ def refresh_plot():
     """Refresh the plot with the most recent data."""
     global current_sensor
     if current_sensor:
+        print(f"Refreshing plot for {current_sensor[0]}...")  # Debugging output
         plot_data(*current_sensor)
     root.after(15000, refresh_plot)  # Schedule the next refresh in 15 seconds
 
