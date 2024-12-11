@@ -5,7 +5,6 @@ from matplotlib.dates import HourLocator, DateFormatter
 from datetime import datetime, timedelta
 import sqlite3
 import numpy as np
-import os
 
 # Connect to the SQLite database
 DB_FILE = "hydroponics_data.db"
@@ -82,44 +81,48 @@ def plot_data(sensor_name, ylabel, y_range, interval_minutes=15):
     ax.set_ylim(y_range)
     canvas.draw()
 
+# Refresh the plot periodically
+def refresh_plot():
+    """Refresh the plot with the most recent data."""
+    global current_sensor
+    if current_sensor:
+        plot_data(*current_sensor)
+    root.after(15000, refresh_plot)  # Schedule the next refresh in 15 seconds
+
 # Button actions
 def show_ph():
-    plot_data("ph", "pH", (5, 8))
+    global current_sensor
+    current_sensor = ("ph", "pH", (5, 8))
+    plot_data(*current_sensor)
 
 def show_temp():
-    plot_data("temperature", "Temperature (°C)", (15, 35))
+    global current_sensor
+    current_sensor = ("temperature", "Temperature (°C)", (15, 35))
+    plot_data(*current_sensor)
 
 def show_ec():
-    plot_data("ec", "EC (mS/cm)", (0, 3))
+    global current_sensor
+    current_sensor = ("ec", "EC (mS/cm)", (0, 3))
+    plot_data(*current_sensor)
 
 def show_tds():
-    plot_data("tds", "TDS (ppm)", (0, 600))
+    global current_sensor
+    current_sensor = ("tds", "TDS (ppm)", (0, 600))
+    plot_data(*current_sensor)
 
 def show_water_level():
-    plot_data("water_level", "Water Level (m)", (0, 1))
+    global current_sensor
+    current_sensor = ("water_level", "Water Level (m)", (0, 1))
+    plot_data(*current_sensor)
 
 def close_program():
     root.destroy()
 
-# Sleep Timer
-def set_sleep_timer():
-    """Set display to blank after 2 minutes of inactivity."""
-    os.system("xset dpms 120 120 120")
-    os.system("xset s activate")
-
-def reset_sleep_timer(event=None):
-    """Reset sleep timer when there is user activity."""
-    os.system("xset s reset")
-
 # Create the main window
 root = tk.Tk()
 root.title("Hydroponics Data Viewer")
-root.attributes("-fullscreen", True)  # Full-screen mode
+root.geometry("800x480")
 root.configure(bg="black")
-
-# Bind user interaction to reset the sleep timer
-root.bind_all("<Any-KeyPress>", reset_sleep_timer)
-root.bind_all("<Any-ButtonPress>", reset_sleep_timer)
 
 # Left frame for buttons
 button_frame = tk.Frame(root, bg="black")
@@ -130,7 +133,7 @@ plot_frame = tk.Frame(root, bg="black", highlightbackground="white", highlightth
 plot_frame.pack(side=tk.RIGHT, expand=True, fill=tk.BOTH)
 
 # Add buttons
-button_size = {"width": 20, "height": 1}  # Adjusted height for thinner buttons
+button_size = {"width": 20, "height": 2}
 buttons = [
     ("Show pH Data", show_ph),
     ("Show Temperature Data", show_temp),
@@ -140,7 +143,7 @@ buttons = [
 ]
 for text, command in buttons:
     btn = tk.Button(button_frame, text=text, font=("Arial", 14), command=command, **button_size, bg="#444444", fg="black")
-    btn.pack(pady=5)
+    btn.pack(pady=10)
 
 # Add Close button
 close_button = tk.Button(button_frame, text="Close Program", font=("Arial", 14), command=close_program,
@@ -155,10 +158,11 @@ canvas = FigureCanvasTkAgg(fig, master=plot_frame)
 canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
 # Default plot
+current_sensor = ("ph", "pH", (5, 8))
 show_ph()
 
-# Set the sleep timer
-set_sleep_timer()
+# Start periodic plot refresh
+root.after(15000, refresh_plot)
 
 # Run the main loop
 root.mainloop()
