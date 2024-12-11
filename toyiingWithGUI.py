@@ -5,8 +5,6 @@ from matplotlib.dates import HourLocator, DateFormatter
 from datetime import datetime, timedelta
 import numpy as np
 import random
-import os
-import shutil
 import serial
 import time
 
@@ -150,7 +148,7 @@ status_label.pack(pady=10)
 button_frame = tk.Frame(root, bg="black")
 button_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
 
-# Right frame for plot
+# Right frame for plot with white border
 plot_frame = tk.Frame(root, bg="black", highlightbackground="white", highlightthickness=2)
 plot_frame.pack(side=tk.RIGHT, expand=True, fill=tk.BOTH)
 
