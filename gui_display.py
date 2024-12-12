@@ -7,7 +7,7 @@ import numpy as np
 import random
 
 # Simulate 24-hour data for testing
-timestamps = [datetime.now() - timedelta(minutes=i) for i in range(1440)]  # 1 minute intervals for 24 hours
+timestamps = sorted([datetime.now() - timedelta(minutes=i) for i in range(1440)])  # Ensure sorted order
 sensor_data = {
     "pH": [np.random.uniform(5.5, 7.5) for _ in range(1440)],
     "Temperature": [np.random.uniform(20, 30) for _ in range(1440)],
