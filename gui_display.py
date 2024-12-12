@@ -54,9 +54,9 @@ def read_arduino_data():
 
             # Update the buffer
             timestamps.append(timestamp)
-            for key, value in buffer.items():
+            for key in buffer.keys():
                 if key in data:
-                    value.append(float(data[key]))
+                    buffer[key].append(float(data[key]))
 
             # Maintain buffer size
             cutoff = timestamp - timedelta(seconds=BUFFER_DURATION)
@@ -67,6 +67,9 @@ def read_arduino_data():
     except Exception as e:
         print(f"Error reading from Arduino: {e}")
         arduino_connected = False
+
+    # Schedule the next read
+    root.after(1000, read_arduino_data)
 
 
 def moving_average(data, window_size=4):
@@ -112,9 +115,8 @@ def plot_data(sensor_name, ylabel, y_range, interval_seconds=300):
     try:
         ax.clear()
 
-        # Simulate fetching data
         times = timestamps
-        data = sensor_data.get(sensor_name, [])
+        data = buffer.get(sensor_name, [])
 
         if not times or not data:
             print(f"No data available for {sensor_name}.")
