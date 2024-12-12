@@ -1,23 +1,26 @@
 import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-from matplotlib.dates import HourLocator, DateFormatter
+from matplotlib.dates import SecondLocator, DateFormatter
 from datetime import datetime, timedelta
 import numpy as np
+import os
+import time
 
-# Simulate 24-hour data for testing
-timestamps = sorted([datetime.now() - timedelta(minutes=i) for i in range(1440)])  # Ensure sorted order
+# Simulated 24-hour data for testing
+timestamps = sorted([datetime.now() - timedelta(seconds=15 * i) for i in range(5760)])  # 15s intervals for 24 hours
 sensor_data = {
-    "pH": [np.random.uniform(5.5, 7.5) for _ in range(1440)],
-    "Temperature": [np.random.uniform(20, 30) for _ in range(1440)],
-    "EC": [np.random.uniform(0.5, 2.5) for _ in range(1440)],
-    "TDS": [np.random.uniform(0, 500) for _ in range(1440)],
-    "Water Level": [np.random.uniform(0.0, 1.0) for _ in range(1440)],
+    "pH": [np.random.uniform(5.5, 7.5) for _ in range(5760)],
+    "Temperature": [np.random.uniform(20, 30) for _ in range(5760)],
+    "EC": [np.random.uniform(0.5, 2.5) for _ in range(5760)],
+    "TDS": [np.random.uniform(0, 500) for _ in range(5760)],
+    "Water Level": [np.random.uniform(0.0, 1.0) for _ in range(5760)],
 }
 
-# Simulate Arduino connection status
+# Arduino connection simulation
 arduino_connected = True
 last_flash = None
+last_interaction = time.time()
 
 
 def toggle_dot():
@@ -31,8 +34,7 @@ def toggle_dot():
         status_dot.config(bg="red")
 
 
-# Resample data to align with tick intervals
-def resample_data(times, data, interval_minutes):
+def resample_data(times, data, interval_seconds):
     """Resample data to a specific interval for consistent plotting."""
     if not times or not data:
         return [], []
@@ -40,8 +42,8 @@ def resample_data(times, data, interval_minutes):
     start_time = times[0]
     end_time = times[-1]
     resampled_times = [
-        start_time + timedelta(minutes=i)
-        for i in range(0, int((end_time - start_time).total_seconds() / 60), interval_minutes)
+        start_time + timedelta(seconds=i)
+        for i in range(0, int((end_time - start_time).total_seconds()), interval_seconds)
     ]
     resampled_data = np.interp(
         [t.timestamp() for t in resampled_times],
@@ -51,8 +53,7 @@ def resample_data(times, data, interval_minutes):
     return resampled_times, resampled_data
 
 
-# Plot the resampled data
-def plot_data(sensor_name, ylabel, y_range, interval_minutes=15):
+def plot_data(sensor_name, ylabel, y_range, interval_seconds=15):
     """Fetch, resample, and plot data for a specific sensor."""
     ax.clear()
 
@@ -64,7 +65,7 @@ def plot_data(sensor_name, ylabel, y_range, interval_minutes=15):
         return
 
     # Resample data
-    resampled_times, resampled_data = resample_data(times, data, interval_minutes)
+    resampled_times, resampled_data = resample_data(times, data, interval_seconds)
 
     # Plot resampled data
     ax.plot(resampled_times, resampled_data, 'o-', color="white")
@@ -75,22 +76,47 @@ def plot_data(sensor_name, ylabel, y_range, interval_minutes=15):
 
     # Configure x-axis
     ax.set_xlim(times[0], times[-1])
-    ax.xaxis.set_major_locator(HourLocator(interval=4))
-    ax.xaxis.set_minor_locator(HourLocator(interval=2))
-    ax.xaxis.set_major_formatter(DateFormatter("%H:%M"))
+    ax.xaxis.set_major_locator(SecondLocator(interval=900))  # Major ticks every 15 minutes
+    ax.xaxis.set_minor_locator(SecondLocator(interval=300))  # Minor ticks every 5 minutes
+    ax.xaxis.set_major_formatter(DateFormatter("%H:%M:%S"))
     ax.tick_params(axis='x', which='major', labelsize=10, colors="white")
     ax.tick_params(axis='x', which='minor', length=5, colors="white")
     ax.tick_params(axis='y', colors="white")
 
     # Add labels and limits
-    ax.set_xlabel("Time (24hr)", color="white")
+    ax.set_xlabel("Time (Last 24 hours)", color="white")
     ax.set_ylabel(ylabel, color="white")
     ax.set_ylim(y_range)
 
     canvas.draw()
 
 
-# Button actions
+def reset_sleep_timer():
+    """Reset the sleep timer."""
+    global last_interaction
+    last_interaction = time.time()
+
+
+def check_sleep():
+    """Check if the display should go to sleep."""
+    if time.time() - last_interaction > 120:  # 2 minutes of inactivity
+        sleep_display()
+    else:
+        root.after(1000, check_sleep)  # Check every second
+
+
+def sleep_display():
+    """Put the display to sleep."""
+    if os.system("xset dpms force off") == 0:  # Turn off display on Raspberry Pi
+        print("Display is sleeping...")
+
+
+def wake_display(event):
+    """Wake up the display on user interaction."""
+    os.system("xset dpms force on")  # Wake up display on Raspberry Pi
+    reset_sleep_timer()
+
+
 def show_ph():
     global current_sensor
     current_sensor = ("pH", "pH", (5, 8))
@@ -122,12 +148,11 @@ def show_water_level():
 
 
 def close_program():
-    """Close the GUI and release the terminal."""
+    """Close the GUI and stop background tasks."""
     global last_flash
     if last_flash:
         root.after_cancel(last_flash)
     root.destroy()
-    print("\nGUI closed. You can now use the terminal.")
 
 
 # Create the main window
@@ -135,6 +160,10 @@ root = tk.Tk()
 root.title("Hydroponics Data Viewer")
 root.geometry("800x480")
 root.configure(bg="black")
+
+# Bind activity to wake display
+root.bind_all("<Any-KeyPress>", wake_display)
+root.bind_all("<Any-ButtonPress>", wake_display)
 
 # Arduino connection status
 status_frame = tk.Frame(root, bg="black")
@@ -183,6 +212,9 @@ show_ph()
 
 # Start Arduino status flashing
 toggle_dot()
+
+# Start sleep timer
+root.after(1000, check_sleep)
 
 # Run the main loop
 root.mainloop()
