@@ -68,7 +68,12 @@ def read_arduino_data():
         timestamps.append(timestamp)
         for key in buffer.keys():
             if key in data:
-                buffer[key].append(float(data[key]))
+                try:
+                    buffer[key].append(float(data[key]))
+                except ValueError:
+                    print(f"Invalid value for {key}: {data[key]}")
+            else:
+                print(f"No data for {key} in line: {line}")
 
         # Maintain buffer size
         cutoff = timestamp - timedelta(seconds=BUFFER_DURATION)
@@ -76,6 +81,8 @@ def read_arduino_data():
             timestamps.pop(0)
             for key in buffer:
                 buffer[key].pop(0)
+
+        print(f"Buffer for pH: {buffer['pH']}")  # Debugging output
 
     except Exception as e:
         print(f"Error reading from Arduino: {e}")
