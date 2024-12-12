@@ -43,33 +43,43 @@ def read_arduino_data():
             # Try to reconnect
             arduino.open()
             arduino_connected = True
-        except Exception:
+        except Exception as e:
+            print(f"Error reconnecting to Arduino: {e}")
             return  # Skip if unable to reconnect
 
     try:
         line = arduino.readline().decode("utf-8").strip()
-        if line:
+        print(f"Raw Arduino data: {line}")  # Debugging output
+
+        # Ensure the line has valid data
+        if not line or ":" not in line or "," not in line:
+            print(f"Skipping malformed line: {line}")
+            return
+
+        # Parse the line into a dictionary
+        try:
             data = dict(item.split(":") for item in line.split(","))
-            timestamp = datetime.now()
+        except ValueError as ve:
+            print(f"Error parsing line: {line}, Error: {ve}")
+            return
 
-            # Update the buffer
-            timestamps.append(timestamp)
-            for key in buffer.keys():
-                if key in data:
-                    buffer[key].append(float(data[key]))
+        # Update the buffer
+        timestamp = datetime.now()
+        timestamps.append(timestamp)
+        for key in buffer.keys():
+            if key in data:
+                buffer[key].append(float(data[key]))
 
-            # Maintain buffer size
-            cutoff = timestamp - timedelta(seconds=BUFFER_DURATION)
-            while timestamps and timestamps[0] < cutoff:
-                timestamps.pop(0)
-                for key in buffer:
-                    buffer[key].pop(0)
+        # Maintain buffer size
+        cutoff = timestamp - timedelta(seconds=BUFFER_DURATION)
+        while timestamps and timestamps[0] < cutoff:
+            timestamps.pop(0)
+            for key in buffer:
+                buffer[key].pop(0)
+
     except Exception as e:
         print(f"Error reading from Arduino: {e}")
         arduino_connected = False
-
-    # Schedule the next read
-    root.after(1000, read_arduino_data)
 
 
 def moving_average(data, window_size=4):
