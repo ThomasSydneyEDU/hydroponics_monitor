@@ -1,19 +1,19 @@
 import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-from matplotlib.dates import HourLocator, DateFormatter
+from matplotlib.dates import MinuteLocator, DateFormatter
 from datetime import datetime, timedelta
 import numpy as np
 import time
 
 # Simulated data for testing
-timestamps = sorted([datetime.now() - timedelta(seconds=15 * i) for i in range(5760)])  # 15s intervals for 24 hours
+timestamps = sorted([datetime.now() - timedelta(seconds=15 * i) for i in range(240)])  # 15s intervals for 1 hour
 sensor_data = {
-    "pH": [np.random.uniform(5.5, 7.5) for _ in range(5760)],
-    "Temperature": [np.random.uniform(20, 30) for _ in range(5760)],
-    "EC": [np.random.uniform(0.5, 2.5) for _ in range(5760)],
-    "TDS": [np.random.uniform(0, 500) for _ in range(5760)],
-    "Water Level": [np.random.uniform(0.0, 1.0) for _ in range(5760)],
+    "pH": [np.random.uniform(5.5, 7.5) for _ in range(240)],
+    "Temperature": [np.random.uniform(20, 30) for _ in range(240)],
+    "EC": [np.random.uniform(0.5, 2.5) for _ in range(240)],
+    "TDS": [np.random.uniform(0, 500) for _ in range(240)],
+    "Water Level": [np.random.uniform(0.0, 1.0) for _ in range(240)],
 }
 
 arduino_connected = True  # Simulate Arduino connection
@@ -21,24 +21,24 @@ last_flash = None
 last_interaction = time.time()
 
 
-def moving_average(data, window_size=20):
+def moving_average(data, window_size=4):
     """Calculate the moving average with a given window size."""
     return np.convolve(data, np.ones(window_size) / window_size, mode="valid")
 
 
-def resample_data(times, data, interval_minutes):
+def resample_data(times, data, interval_seconds):
     """Resample data to a specific interval for consistent plotting."""
     start_time = times[0]
     end_time = times[-1]
 
     # Resample timestamps
     resampled_times = [
-        start_time + timedelta(minutes=i)
-        for i in range(0, int((end_time - start_time).total_seconds() / 60), interval_minutes)
+        start_time + timedelta(seconds=i)
+        for i in range(0, int((end_time - start_time).total_seconds()), interval_seconds)
     ]
 
     # Apply moving average and downsample data
-    smoothed_data = moving_average(data, window_size=20)  # Smoothing
+    smoothed_data = moving_average(data, window_size=4)  # Smoothing
     resampled_data = np.interp(
         [t.timestamp() for t in resampled_times],
         [t.timestamp() for t in times[:len(smoothed_data)]],
@@ -48,7 +48,7 @@ def resample_data(times, data, interval_minutes):
     return resampled_times, resampled_data
 
 
-def plot_data(sensor_name, ylabel, y_range, interval_minutes=5):
+def plot_data(sensor_name, ylabel, y_range, interval_seconds=300):
     """Fetch, resample, and plot data for a specific sensor."""
     ax.clear()
 
@@ -57,7 +57,7 @@ def plot_data(sensor_name, ylabel, y_range, interval_minutes=5):
     data = sensor_data[sensor_name]
 
     # Resample data
-    resampled_times, resampled_data = resample_data(times, data, interval_minutes)
+    resampled_times, resampled_data = resample_data(times, data, interval_seconds)
 
     # Plot data
     ax.plot(resampled_times, resampled_data, 'o-', color="white")
@@ -67,15 +67,15 @@ def plot_data(sensor_name, ylabel, y_range, interval_minutes=5):
     ax.grid(which="minor", color="lightgray", linestyle="--", linewidth=0.5)
 
     ax.set_xlim(times[0], times[-1])
-    ax.xaxis.set_major_locator(HourLocator(interval=6))  # Major ticks every 6 hours
-    ax.xaxis.set_minor_locator(HourLocator(interval=1))  # Minor ticks every 1 hour
+    ax.xaxis.set_major_locator(MinuteLocator(interval=15))  # Major ticks every 15 minutes
+    ax.xaxis.set_minor_locator(MinuteLocator(interval=5))  # Minor ticks every 5 minutes
     ax.xaxis.set_major_formatter(DateFormatter("%H:%M"))
     ax.tick_params(axis='x', which='major', labelsize=10, colors="white")
     ax.tick_params(axis='x', which='minor', length=5, colors="white")
     ax.tick_params(axis='y', colors="white")
 
     # Add labels and limits
-    ax.set_xlabel("Time (24hr)", color="white")
+    ax.set_xlabel("Time (1hr)", color="white")
     ax.set_ylabel(ylabel, color="white")
     ax.set_ylim(y_range)
     canvas.draw()
@@ -105,6 +105,22 @@ def close_program():
     root.destroy()
 
 
+def update_arduino_status():
+    """Update the Arduino connection status indicator."""
+    global last_flash
+
+    if arduino_connected:
+        # Toggle green light to indicate activity
+        current_time = time.time()
+        if last_flash is None or current_time - last_flash > 0.5:
+            status_label.config(text="Arduino Connected", fg="green" if status_label.cget("fg") == "black" else "black")
+            last_flash = current_time
+    else:
+        status_label.config(text="Arduino Disconnected", fg="red")
+
+    root.after(500, update_arduino_status)  # Update every 500ms
+
+
 def sleep_display():
     """Simulate putting the display to sleep."""
     global last_interaction
@@ -130,6 +146,10 @@ root.configure(bg="black")
 root.bind("<Any-KeyPress>", wake_display)
 root.bind("<Any-ButtonPress>", wake_display)
 
+# Arduino status label
+status_label = tk.Label(root, text="Arduino Status", font=("Arial", 12), fg="white", bg="black")
+status_label.pack(pady=5)
+
 # Left frame for buttons
 button_frame = tk.Frame(root, bg="black")
 button_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
@@ -139,7 +159,7 @@ plot_frame = tk.Frame(root, bg="black", highlightbackground="white", highlightth
 plot_frame.pack(side=tk.RIGHT, expand=True, fill=tk.BOTH)
 
 # Add buttons
-button_size = {"width": 15, "height": 2}
+button_size = {"width": 15, "height": 1}
 buttons = [
     ("pH", show_ph),
     ("Temperature", show_temp),
@@ -148,13 +168,13 @@ buttons = [
     ("Water Level", show_water_level),
 ]
 for text, command in buttons:
-    btn = tk.Button(button_frame, text=text, font=("Arial", 14), command=command, **button_size, bg="#444444", fg="black")
-    btn.pack(pady=10)
+    btn = tk.Button(button_frame, text=text, font=("Arial", 12), command=command, **button_size, bg="#444444", fg="black")
+    btn.pack(pady=5)
 
 # Add Close button
-close_button = tk.Button(button_frame, text="Close", font=("Arial", 14), command=close_program,
+close_button = tk.Button(button_frame, text="Close", font=("Arial", 12), command=close_program,
                          **button_size, bg="#FF3333", fg="black")
-close_button.pack(pady=10)
+close_button.pack(pady=5)
 
 # Initialize matplotlib figure
 fig, ax = plt.subplots(figsize=(8, 5))
@@ -166,7 +186,8 @@ canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 # Default plot
 show_ph()
 
-# Start sleep display check
+# Start Arduino status and sleep checks
+root.after(500, update_arduino_status)
 root.after(1000, sleep_display)
 
 # Run the main loop
