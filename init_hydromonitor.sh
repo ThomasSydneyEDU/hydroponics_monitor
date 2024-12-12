@@ -3,8 +3,7 @@
 # Variables
 REPO_PATH="/home/tcar5787/Documents/hydroponics_monitor"        # Replace with the full path to your project directory
 VENV_PATH="/home/tcar5787/Documents/PyEnviroments/hydromonitor"  # Replace with the full path to your virtual environment
-ARDUINO_SCRIPT="arduino_to_sensor.py"        # Script to fetch data from Arduino
-GUI_SCRIPT="gui_display.py"                  # GUI display script
+GUI_SCRIPT="gui_display.py"                                     # GUI display script
 
 # Change to the repository directory
 cd "$REPO_PATH" || { echo "Error: Cannot access $REPO_PATH"; exit 1; }
@@ -22,10 +21,6 @@ fi
 # Activate the virtual environment
 echo "Activating the virtual environment..."
 source "$VENV_PATH/bin/activate" || { echo "Error: Failed to activate virtual environment"; exit 1; }
-
-# Start the Arduino data logging script
-echo "Starting Arduino to Sensor script..."
-python3 "$ARDUINO_SCRIPT" &  # Run in the background
 
 # Start the GUI
 echo "Starting the GUI..."

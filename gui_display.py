@@ -4,21 +4,69 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import MinuteLocator, DateFormatter
 from datetime import datetime, timedelta
 import numpy as np
+import serial
 import time
 
-# Simulated data for testing
-timestamps = sorted([datetime.now() - timedelta(seconds=15 * i) for i in range(240)])  # 15s intervals for 1 hour
-sensor_data = {
-    "pH": [np.random.uniform(5.5, 7.5) for _ in range(240)],
-    "Temperature": [np.random.uniform(20, 30) for _ in range(240)],
-    "EC": [np.random.uniform(0.5, 2.5) for _ in range(240)],
-    "TDS": [np.random.uniform(0, 500) for _ in range(240)],
-    "Water Level": [np.random.uniform(0.0, 1.0) for _ in range(240)],
-}
+# Arduino Serial Connection Settings
+ARDUINO_PORT = "/dev/ttyACM0"  # Adjust to your port
+BAUD_RATE = 9600
+TIMEOUT = 1  # Seconds
 
-arduino_connected = True  # Simulate Arduino connection
+# Initialize data buffers
+BUFFER_DURATION = 3600  # Store 1 hour of data (in seconds)
+buffer = {
+    "pH": [],
+    "Temperature": [],
+    "EC": [],
+    "TDS": [],
+    "Water Level": [],
+}
+timestamps = []
+arduino_connected = False
 last_flash = None
 last_interaction = time.time()
+
+# Attempt to connect to Arduino
+try:
+    arduino = serial.Serial(ARDUINO_PORT, BAUD_RATE, timeout=TIMEOUT)
+    arduino_connected = True
+except serial.SerialException:
+    arduino_connected = False
+
+
+def read_arduino_data():
+    """Read and parse data from Arduino."""
+    global arduino_connected
+
+    if not arduino_connected:
+        try:
+            # Try to reconnect
+            arduino.open()
+            arduino_connected = True
+        except Exception:
+            return  # Skip if unable to reconnect
+
+    try:
+        line = arduino.readline().decode("utf-8").strip()
+        if line:
+            data = dict(item.split(":") for item in line.split(","))
+            timestamp = datetime.now()
+
+            # Update the buffer
+            timestamps.append(timestamp)
+            for key, value in buffer.items():
+                if key in data:
+                    value.append(float(data[key]))
+
+            # Maintain buffer size
+            cutoff = timestamp - timedelta(seconds=BUFFER_DURATION)
+            while timestamps and timestamps[0] < cutoff:
+                timestamps.pop(0)
+                for key in buffer:
+                    buffer[key].pop(0)
+    except Exception as e:
+        print(f"Error reading from Arduino: {e}")
+        arduino_connected = False
 
 
 def moving_average(data, window_size=4):
@@ -28,6 +76,9 @@ def moving_average(data, window_size=4):
 
 def resample_data(times, data, interval_seconds):
     """Resample data to a specific interval for consistent plotting."""
+    if not times or not data:
+        return [], []
+
     start_time = times[0]
     end_time = times[-1]
 
@@ -53,9 +104,9 @@ def plot_data(sensor_name, ylabel, y_range, interval_seconds=300):
     try:
         ax.clear()
 
-        # Simulate fetching data
+        # Use buffered data
         times = timestamps
-        data = sensor_data[sensor_name]
+        data = buffer[sensor_name]
 
         # Resample data
         resampled_times, resampled_data = resample_data(times, data, interval_seconds)
@@ -114,7 +165,6 @@ def update_arduino_status():
 
     try:
         if arduino_connected:
-            # Toggle green light to indicate activity
             current_time = time.time()
             if last_flash is None or current_time - last_flash > 0.5:
                 light_color = "green" if status_light.cget("bg") == "black" else "black"
@@ -130,30 +180,11 @@ def update_arduino_status():
     root.after(500, update_arduino_status)  # Update every 500ms
 
 
-def sleep_display():
-    """Simulate putting the display to sleep."""
-    global last_interaction
-    if time.time() - last_interaction > 120:  # 2 minutes
-        root.withdraw()  # Hide the window
-    root.after(1000, sleep_display)  # Check every second
-
-
-def wake_display(event):
-    """Wake the display on interaction."""
-    global last_interaction
-    last_interaction = time.time()
-    root.deiconify()  # Show the window again
-
-
 # Create the main window
 root = tk.Tk()
 root.title("Hydroponics Data Viewer")
 root.geometry("800x480")
 root.configure(bg="black")
-
-# Bind interactions to wake the display
-root.bind("<Any-KeyPress>", wake_display)
-root.bind("<Any-ButtonPress>", wake_display)
 
 # Arduino status label and light
 status_frame = tk.Frame(root, bg="black")
@@ -199,9 +230,11 @@ canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 # Default plot
 show_ph()
 
-# Start Arduino status and sleep checks
+# Start Arduino status updates
 root.after(500, update_arduino_status)
-root.after(1000, sleep_display)
+
+# Periodically fetch Arduino data
+root.after(1000, read_arduino_data)
 
 # Run the main loop
 root.mainloop()
