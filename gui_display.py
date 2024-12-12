@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import HourLocator, DateFormatter
 from datetime import datetime, timedelta
 import numpy as np
+import random
 
 # Simulate 24-hour data for testing
 timestamps = [datetime.now() - timedelta(minutes=i) for i in range(1440)]  # 1 minute intervals for 24 hours
@@ -14,6 +15,24 @@ sensor_data = {
     "TDS": [np.random.uniform(0, 500) for _ in range(1440)],
     "Water Level": [np.random.uniform(0.0, 1.0) for _ in range(1440)],
 }
+
+# Simulate Arduino connection status
+arduino_connected = True
+last_flash = None
+
+
+def toggle_dot():
+    """Toggle the Arduino status dot."""
+    global last_flash
+    if arduino_connected:
+        # Alternate dot color between green and black (flash effect)
+        new_color = "green" if status_dot.cget("bg") == "black" else "black"
+        status_dot.config(bg=new_color)
+        last_flash = root.after(500, toggle_dot)
+    else:
+        # Set to red if disconnected
+        status_dot.config(bg="red")
+
 
 # Resample data to align with tick intervals
 def resample_data(times, data, interval_minutes):
@@ -34,7 +53,8 @@ def resample_data(times, data, interval_minutes):
     )
     return resampled_times, resampled_data
 
-# Plot the resampled and latest data
+
+# Plot the resampled data
 def plot_data(sensor_name, ylabel, y_range, interval_minutes=15):
     """Fetch, resample, and plot data for a specific sensor."""
     ax.clear()
@@ -51,10 +71,6 @@ def plot_data(sensor_name, ylabel, y_range, interval_minutes=15):
 
     # Plot resampled data
     ax.plot(resampled_times, resampled_data, 'o-', color="white")
-
-    # Plot the most recent data point
-    if times and data:
-        ax.scatter(times[-1], data[-1], color="green", s=50)  # Green marker for the latest point
 
     # Configure grid
     ax.grid(which="major", color="white", linestyle="-", linewidth=0.8)
@@ -76,42 +92,60 @@ def plot_data(sensor_name, ylabel, y_range, interval_minutes=15):
 
     canvas.draw()
 
+
 # Button actions
 def show_ph():
     global current_sensor
     current_sensor = ("pH", "pH", (5, 8))
     plot_data(*current_sensor)
 
+
 def show_temp():
     global current_sensor
     current_sensor = ("Temperature", "Temperature (°C)", (15, 35))
     plot_data(*current_sensor)
+
 
 def show_ec():
     global current_sensor
     current_sensor = ("EC", "EC (mS/cm)", (0, 3))
     plot_data(*current_sensor)
 
+
 def show_tds():
     global current_sensor
     current_sensor = ("TDS", "TDS (ppm)", (0, 600))
     plot_data(*current_sensor)
+
 
 def show_water_level():
     global current_sensor
     current_sensor = ("Water Level", "Water Level (m)", (0, 1))
     plot_data(*current_sensor)
 
+
 def close_program():
     """Close the GUI and release the terminal."""
+    global last_flash
+    if last_flash:
+        root.after_cancel(last_flash)
     root.destroy()
     print("\nGUI closed. You can now use the terminal.")
+
 
 # Create the main window
 root = tk.Tk()
 root.title("Hydroponics Data Viewer")
 root.geometry("800x480")
 root.configure(bg="black")
+
+# Arduino connection status
+status_frame = tk.Frame(root, bg="black")
+status_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
+status_label = tk.Label(status_frame, text="Arduino Connected", font=("Arial", 12), fg="white", bg="black")
+status_label.pack(side=tk.LEFT, padx=5)
+status_dot = tk.Label(status_frame, text="  ", font=("Arial", 12), bg="green", width=2, height=1)
+status_dot.pack(side=tk.LEFT)
 
 # Left frame for buttons
 button_frame = tk.Frame(root, bg="black")
@@ -149,6 +183,9 @@ canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 # Default plot
 current_sensor = ("pH", "pH", (5, 8))
 show_ph()
+
+# Start Arduino status flashing
+toggle_dot()
 
 # Run the main loop
 root.mainloop()
