@@ -50,35 +50,38 @@ def resample_data(times, data, interval_seconds):
 
 def plot_data(sensor_name, ylabel, y_range, interval_seconds=300):
     """Fetch, resample, and plot data for a specific sensor."""
-    ax.clear()
+    try:
+        ax.clear()
 
-    # Simulate fetching data
-    times = timestamps
-    data = sensor_data[sensor_name]
+        # Simulate fetching data
+        times = timestamps
+        data = sensor_data[sensor_name]
 
-    # Resample data
-    resampled_times, resampled_data = resample_data(times, data, interval_seconds)
+        # Resample data
+        resampled_times, resampled_data = resample_data(times, data, interval_seconds)
 
-    # Plot data
-    ax.plot(resampled_times, resampled_data, 'o-', color="white")
+        # Plot data
+        ax.plot(resampled_times, resampled_data, 'o-', color="white")
 
-    # Configure grid and ticks
-    ax.grid(which="major", color="white", linestyle="-", linewidth=0.8)
-    ax.grid(which="minor", color="lightgray", linestyle="--", linewidth=0.5)
+        # Configure grid and ticks
+        ax.grid(which="major", color="white", linestyle="-", linewidth=0.8)
+        ax.grid(which="minor", color="lightgray", linestyle="--", linewidth=0.5)
 
-    ax.set_xlim(times[0], times[-1])
-    ax.xaxis.set_major_locator(MinuteLocator(interval=15))  # Major ticks every 15 minutes
-    ax.xaxis.set_minor_locator(MinuteLocator(interval=5))  # Minor ticks every 5 minutes
-    ax.xaxis.set_major_formatter(DateFormatter("%H:%M"))
-    ax.tick_params(axis='x', which='major', labelsize=10, colors="white")
-    ax.tick_params(axis='x', which='minor', length=5, colors="white")
-    ax.tick_params(axis='y', colors="white")
+        ax.set_xlim(times[0], times[-1])
+        ax.xaxis.set_major_locator(MinuteLocator(interval=15))  # Major ticks every 15 minutes
+        ax.xaxis.set_minor_locator(MinuteLocator(interval=5))  # Minor ticks every 5 minutes
+        ax.xaxis.set_major_formatter(DateFormatter("%H:%M"))
+        ax.tick_params(axis='x', which='major', labelsize=10, colors="white")
+        ax.tick_params(axis='x', which='minor', length=5, colors="white")
+        ax.tick_params(axis='y', colors="white")
 
-    # Add labels and limits
-    ax.set_xlabel("Time (1hr)", color="white")
-    ax.set_ylabel(ylabel, color="white")
-    ax.set_ylim(y_range)
-    canvas.draw()
+        # Add labels and limits
+        ax.set_xlabel("Time (1hr)", color="white")
+        ax.set_ylabel(ylabel, color="white")
+        ax.set_ylim(y_range)
+        canvas.draw()
+    except Exception as e:
+        print(f"Error updating plot: {e}")
 
 
 def show_ph():
@@ -109,14 +112,20 @@ def update_arduino_status():
     """Update the Arduino connection status indicator."""
     global last_flash
 
-    if arduino_connected:
-        # Toggle green light to indicate activity
-        current_time = time.time()
-        if last_flash is None or current_time - last_flash > 0.5:
-            status_label.config(text="Arduino Connected", fg="green" if status_label.cget("fg") == "black" else "black")
-            last_flash = current_time
-    else:
-        status_label.config(text="Arduino Disconnected", fg="red")
+    try:
+        if arduino_connected:
+            # Toggle green light to indicate activity
+            current_time = time.time()
+            if last_flash is None or current_time - last_flash > 0.5:
+                light_color = "green" if status_light.cget("bg") == "black" else "black"
+                status_light.config(bg=light_color)
+                last_flash = current_time
+            status_label.config(text="Arduino Connected", fg="white")
+        else:
+            status_light.config(bg="red")
+            status_label.config(text="Arduino Disconnected", fg="white")
+    except Exception as e:
+        print(f"Error updating Arduino status: {e}")
 
     root.after(500, update_arduino_status)  # Update every 500ms
 
@@ -146,9 +155,13 @@ root.configure(bg="black")
 root.bind("<Any-KeyPress>", wake_display)
 root.bind("<Any-ButtonPress>", wake_display)
 
-# Arduino status label
-status_label = tk.Label(root, text="Arduino Status", font=("Arial", 12), fg="white", bg="black")
-status_label.pack(pady=5)
+# Arduino status label and light
+status_frame = tk.Frame(root, bg="black")
+status_frame.pack(pady=5)
+status_label = tk.Label(status_frame, text="Arduino Status", font=("Arial", 12), fg="white", bg="black")
+status_label.pack(side=tk.LEFT)
+status_light = tk.Label(status_frame, text="  ", bg="red", width=2, height=1)
+status_light.pack(side=tk.LEFT, padx=5)
 
 # Left frame for buttons
 button_frame = tk.Frame(root, bg="black")

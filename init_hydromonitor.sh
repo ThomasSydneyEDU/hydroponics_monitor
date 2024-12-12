@@ -3,9 +3,8 @@
 # Variables
 REPO_PATH="/home/tcar5787/Documents/hydroponics_monitor"        # Replace with the full path to your project directory
 VENV_PATH="/home/tcar5787/Documents/PyEnviroments/hydromonitor"  # Replace with the full path to your virtual environment
-INIT_DB_SCRIPT="initialize_database.py"  # Script to initialize the database
-ARDUINO_SCRIPT="arduino_to_db.py"        # Script to fetch data from Arduino
-GUI_SCRIPT="gui_display.py"              # GUI display script
+ARDUINO_SCRIPT="arduino_to_sensor.py"        # Script to fetch data from Arduino
+GUI_SCRIPT="gui_display.py"                  # GUI display script
 
 # Change to the repository directory
 cd "$REPO_PATH" || { echo "Error: Cannot access $REPO_PATH"; exit 1; }
@@ -24,18 +23,9 @@ fi
 echo "Activating the virtual environment..."
 source "$VENV_PATH/bin/activate" || { echo "Error: Failed to activate virtual environment"; exit 1; }
 
-# Initialize the database
-read -p "WARNING: This will delete existing data. Proceed? (y/n): " confirm
-if [[ $confirm == "y" || $confirm == "Y" ]]; then
-    echo "Initializing the database..."
-    python3 "$INIT_DB_SCRIPT" || { echo "Error: Failed to initialize the database"; deactivate; exit 1; }
-else
-    echo "Skipping database initialization."
-fi
-
 # Start the Arduino data logging script
-echo "Starting Arduino to Database script..."
-python3 "$ARDUINO_SCRIPT" &
+echo "Starting Arduino to Sensor script..."
+python3 "$ARDUINO_SCRIPT" &  # Run in the background
 
 # Start the GUI
 echo "Starting the GUI..."
