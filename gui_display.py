@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import HourLocator, DateFormatter
 from datetime import datetime, timedelta
 import numpy as np
-import random
 
 # Simulate 24-hour data for testing
 timestamps = sorted([datetime.now() - timedelta(minutes=i) for i in range(1440)])  # Ensure sorted order
@@ -25,12 +24,10 @@ def toggle_dot():
     """Toggle the Arduino status dot."""
     global last_flash
     if arduino_connected:
-        # Alternate dot color between green and black (flash effect)
         new_color = "green" if status_dot.cget("bg") == "black" else "black"
         status_dot.config(bg=new_color)
         last_flash = root.after(500, toggle_dot)
     else:
-        # Set to red if disconnected
         status_dot.config(bg="red")
 
 
@@ -152,24 +149,24 @@ button_frame = tk.Frame(root, bg="black")
 button_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
 
 # Right frame for plot with white border
-plot_frame = tk.Frame(root, bg="black", highlightbackground="white", highlightthickness=2)
+plot_frame = tk.Frame(root, bg="black", highlightbackground="white", highlightthickness=2)  # White border added
 plot_frame.pack(side=tk.RIGHT, expand=True, fill=tk.BOTH)
 
 # Add buttons
 button_size = {"width": 20, "height": 1}  # Reduced button height
 buttons = [
-    ("Show pH Data", show_ph),
-    ("Show Temperature Data", show_temp),
-    ("Show EC Data", show_ec),
-    ("Show TDS Data", show_tds),
-    ("Show Water Level Data", show_water_level),
+    ("pH", show_ph),
+    ("Temperature", show_temp),
+    ("EC", show_ec),
+    ("TDS", show_tds),
+    ("Water Level", show_water_level),
 ]
 for text, command in buttons:
     btn = tk.Button(button_frame, text=text, font=("Arial", 14), command=command, **button_size, bg="#444444", fg="black")
     btn.pack(pady=10)
 
 # Add Close button
-close_button = tk.Button(button_frame, text="Close Program", font=("Arial", 14), command=close_program,
+close_button = tk.Button(button_frame, text="Close", font=("Arial", 14), command=close_program,
                          **button_size, bg="#FF3333", fg="black")
 close_button.pack(pady=10)
 
