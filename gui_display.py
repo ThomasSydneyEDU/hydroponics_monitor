@@ -76,7 +76,8 @@ def moving_average(data, window_size=4):
 
 def resample_data(times, data, interval_seconds):
     """Resample data to a specific interval for consistent plotting."""
-    if not times or not data:
+    if not times or not data or len(times) != len(data):
+        print("Error: Times and data length mismatch or insufficient data.")
         return [], []
 
     start_time = times[0]
@@ -89,27 +90,45 @@ def resample_data(times, data, interval_seconds):
     ]
 
     # Apply moving average and downsample data
-    smoothed_data = moving_average(data, window_size=4)  # Smoothing
-    resampled_data = np.interp(
-        [t.timestamp() for t in resampled_times],
-        [t.timestamp() for t in times[:len(smoothed_data)]],
-        smoothed_data,
-    )
+    try:
+        smoothed_data = moving_average(data, window_size=4)  # Smoothing
+        if len(smoothed_data) < len(resampled_times):
+            print("Error: Smoothed data shorter than resampled times.")
+            return [], []
+
+        resampled_data = np.interp(
+            [t.timestamp() for t in resampled_times],
+            [t.timestamp() for t in times[:len(smoothed_data)]],
+            smoothed_data,
+        )
+    except Exception as e:
+        print(f"Error during resampling: {e}")
+        return [], []
 
     return resampled_times, resampled_data
-
 
 def plot_data(sensor_name, ylabel, y_range, interval_seconds=300):
     """Fetch, resample, and plot data for a specific sensor."""
     try:
         ax.clear()
 
-        # Use buffered data
+        # Simulate fetching data
         times = timestamps
-        data = buffer[sensor_name]
+        data = sensor_data.get(sensor_name, [])
+
+        if not times or not data:
+            print(f"No data available for {sensor_name}.")
+            ax.text(0.5, 0.5, "No Data Available", fontsize=16, color="white", ha="center", transform=ax.transAxes)
+            canvas.draw()
+            return
 
         # Resample data
         resampled_times, resampled_data = resample_data(times, data, interval_seconds)
+        if not resampled_times or not resampled_data:
+            print(f"Resampling failed for {sensor_name}.")
+            ax.text(0.5, 0.5, "Error Resampling Data", fontsize=16, color="white", ha="center", transform=ax.transAxes)
+            canvas.draw()
+            return
 
         # Plot data
         ax.plot(resampled_times, resampled_data, 'o-', color="white")
@@ -117,7 +136,6 @@ def plot_data(sensor_name, ylabel, y_range, interval_seconds=300):
         # Configure grid and ticks
         ax.grid(which="major", color="white", linestyle="-", linewidth=0.8)
         ax.grid(which="minor", color="lightgray", linestyle="--", linewidth=0.5)
-
         ax.set_xlim(times[0], times[-1])
         ax.xaxis.set_major_locator(MinuteLocator(interval=15))  # Major ticks every 15 minutes
         ax.xaxis.set_minor_locator(MinuteLocator(interval=5))  # Minor ticks every 5 minutes
@@ -133,7 +151,6 @@ def plot_data(sensor_name, ylabel, y_range, interval_seconds=300):
         canvas.draw()
     except Exception as e:
         print(f"Error updating plot: {e}")
-
 
 def show_ph():
     plot_data("pH", "pH", (5, 8))
