@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import serial
 import time
 import numpy as np
+import random
 
 # Arduino connection settings
 ARDUINO_PORT = "/dev/ttyACM0"  # Adjust to your port
@@ -21,15 +22,22 @@ except serial.SerialException as e:
     print(f"Error connecting to Arduino: {e}")
     arduino_connected = False
 
-# Initialize data storage
-sensor_data = {
-    "pH": [],
-    "Temperature": [],
-    "EC": [],
-    "TDS": [],
-    "Water Level": [],
-}
-timestamps = []
+# Simulate 24 hours of initial data
+def simulate_initial_data():
+    """Simulate 24 hours of data for all sensors."""
+    now = datetime.now()
+    simulated_times = [now - timedelta(minutes=i) for i in range(1440)]  # 1440 minutes = 24 hours
+    simulated_data = {
+        "pH": [round(random.uniform(5.5, 7.5), 2) for _ in range(1440)],
+        "Temperature": [round(random.uniform(20.0, 30.0), 2) for _ in range(1440)],
+        "EC": [round(random.uniform(0.5, 2.5), 2) for _ in range(1440)],
+        "TDS": [round(random.uniform(0, 500), 1) for _ in range(1440)],
+        "Water Level": [round(random.uniform(0.0, 1.0), 2) for _ in range(1440)],
+    }
+    return simulated_times[::-1], {k: v[::-1] for k, v in simulated_data.items()}
+
+# Initialize data storage with simulated data
+timestamps, sensor_data = simulate_initial_data()
 
 # Define y-axis ranges for each sensor type
 Y_AXIS_RANGES = {
