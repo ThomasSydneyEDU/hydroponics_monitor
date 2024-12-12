@@ -50,11 +50,11 @@ def plot_data(sensor_name, ylabel, y_range, interval_minutes=15):
     resampled_times, resampled_data = resample_data(times, data, interval_minutes)
 
     # Plot resampled data
-    ax.plot(resampled_times, resampled_data, 'o-', color="white", label="15-min Trend")
+    ax.plot(resampled_times, resampled_data, 'o-', color="white")
 
     # Plot the most recent data point
     if times and data:
-        ax.scatter(times[-1], data[-1], color="green", s=50, label="Latest Value")  # Green marker for the latest point
+        ax.scatter(times[-1], data[-1], color="green", s=50)  # Green marker for the latest point
 
     # Configure grid
     ax.grid(which="major", color="white", linestyle="-", linewidth=0.8)
@@ -69,11 +69,10 @@ def plot_data(sensor_name, ylabel, y_range, interval_minutes=15):
     ax.tick_params(axis='x', which='minor', length=5, colors="white")
     ax.tick_params(axis='y', colors="white")
 
-    # Add labels, limits, and legend
+    # Add labels and limits
     ax.set_xlabel("Time (24hr)", color="white")
     ax.set_ylabel(ylabel, color="white")
     ax.set_ylim(y_range)
-    ax.legend(loc="upper left", fontsize=10, facecolor="black", edgecolor="white")
 
     canvas.draw()
 
