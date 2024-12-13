@@ -8,7 +8,7 @@ def initialize_firestore():
     """
     Initialize Firestore using the service account key.
     """
-    return firestore.Client.from_service_account_json("serviceAccountKey.json")
+    return firestore.Client.from_service_account_json("/home/tcar5787/APIkeys/hydrometer/serviceAccountKey.json")
 
 # Firestore function to write sensor data
 def write_to_firestore(db, sensor_data):
