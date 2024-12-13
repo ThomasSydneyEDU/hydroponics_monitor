@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 old/
 hydroponics_data.db
+HYDROCLOUD/serviceAccountKey.json
