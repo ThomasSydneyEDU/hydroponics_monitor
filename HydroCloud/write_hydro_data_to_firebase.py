@@ -19,8 +19,8 @@ def write_to_firestore(db, sensor_data):
         # Reference Firestore collection
         collection_ref = db.collection("sensor_readings")
 
-        # Add sensor data with a server timestamp
-        sensor_data["timestamp"] = firestore.SERVER_TIMESTAMP
+        # Add sensor data with a Python-generated timestamp (to second resolution)
+        sensor_data["timestamp"] = datetime.utcnow().replace(microsecond=0)  # Truncate to second resolution
         collection_ref.add(sensor_data)
 
         print(f"Data written to Firestore: {sensor_data}")
