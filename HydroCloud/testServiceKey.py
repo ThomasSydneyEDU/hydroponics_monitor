@@ -6,7 +6,7 @@ def initialize_firestore():
     """
     try:
         # Replace 'serviceAccountKey.json' with the path to your Firebase service account key file
-        db = firestore.Client.from_service_account_json("serviceAccountKey.json")
+        db = firestore.Client.from_service_account_json("/home/tcar5787/APIkeys/hydrometer/serviceAccountKey.json")
         print("Successfully connected to Firestore.")
         return db
     except Exception as e:
