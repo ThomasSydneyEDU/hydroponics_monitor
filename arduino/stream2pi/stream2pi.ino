@@ -8,7 +8,7 @@ const float waterLevelMin = 0.0, waterLevelMax = 1.0; // meters
 const float waterTempMin = 20.0, waterTempMax = 30.0; // Celsius
 const float ecMin = 0.5, ecMax = 2.5;                 // mS/cm
 const float tdsMin = 0.0, tdsMax = 500.0;             // ppm
-const float phMin = 5.5, phMax = 7.5;                 // pH
+const float phMin = 5.5, phMax = 8.0;                 // pH
 
 // Current simulated values
 float currentWaterLevel = 0.5;
