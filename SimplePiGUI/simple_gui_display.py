@@ -64,6 +64,10 @@ def update_display():
             labels["WATER_TEMP"].config(text=f"Temperature: {data['WATER_TEMP']} °C")
         if "WATER_LEVEL" in data:
             labels["WATER_LEVEL"].config(text=f"Water Level: {data['WATER_LEVEL']} m")
+        if "TDS" in data:
+            labels["TDS"].config(text=f"TDS: {data['TDS']} ppm")
+        if "EC" in data:
+            labels["EC"].config(text=f"EC: {data['EC']} mS/cm")
 
     root.after(1000, update_display)  # Refresh every second
 
@@ -98,7 +102,7 @@ def close_program():
 # Create the main window
 root = tk.Tk()
 root.title("Hydroponics Data Viewer")
-root.geometry("400x300")
+root.geometry("400x400")  # Increased height to fit new labels
 root.configure(bg="black")
 
 # Arduino status label and light
@@ -118,6 +122,8 @@ labels = {
     "PH": tk.Label(data_frame, text="pH: --", font=("Arial", 14), fg="white", bg="black"),
     "WATER_TEMP": tk.Label(data_frame, text="Temperature: -- °C", font=("Arial", 14), fg="white", bg="black"),
     "WATER_LEVEL": tk.Label(data_frame, text="Water Level: -- m", font=("Arial", 14), fg="white", bg="black"),
+    "TDS": tk.Label(data_frame, text="TDS: -- ppm", font=("Arial", 14), fg="white", bg="black"),
+    "EC": tk.Label(data_frame, text="EC: -- mS/cm", font=("Arial", 14), fg="white", bg="black"),
 }
 for label in labels.values():
     label.pack(anchor="w", padx=10, pady=5)
