@@ -57,9 +57,13 @@ def update_display():
     """Fetch new data and update the display."""
     data = read_arduino_data()
     if data:
-        for key, value in data.items():
-            if key in labels:
-                labels[key].config(text=f"{key}: {value}")
+        # Update labels with Arduino keys
+        if "PH" in data:
+            labels["PH"].config(text=f"pH: {data['PH']}")
+        if "WATER_TEMP" in data:
+            labels["WATER_TEMP"].config(text=f"Temperature: {data['WATER_TEMP']} °C")
+        if "WATER_LEVEL" in data:
+            labels["WATER_LEVEL"].config(text=f"Water Level: {data['WATER_LEVEL']} m")
 
     root.after(1000, update_display)  # Refresh every second
 
@@ -110,11 +114,13 @@ data_frame = tk.Frame(root, bg="black")
 data_frame.pack(expand=True, fill=tk.BOTH, pady=20)
 
 # Add labels for each sensor
-labels = {}
-for sensor in ["pH", "Temperature", "EC", "TDS", "Water Level"]:
-    label = tk.Label(data_frame, text=f"{sensor}: --", font=("Arial", 14), fg="white", bg="black")
+labels = {
+    "PH": tk.Label(data_frame, text="pH: --", font=("Arial", 14), fg="white", bg="black"),
+    "WATER_TEMP": tk.Label(data_frame, text="Temperature: -- °C", font=("Arial", 14), fg="white", bg="black"),
+    "WATER_LEVEL": tk.Label(data_frame, text="Water Level: -- m", font=("Arial", 14), fg="white", bg="black"),
+}
+for label in labels.values():
     label.pack(anchor="w", padx=10, pady=5)
-    labels[sensor] = label
 
 # Close button
 close_button = tk.Button(root, text="Close", font=("Arial", 12), command=close_program, bg="#FF3333", fg="black")
